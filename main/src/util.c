@@ -282,27 +282,27 @@ cannyEdgeDetection_ref(
     times[0] = gettimemono_ns();
     sobel3x3_ref(input, width, height, sobel_x, sobel_y);
 
-    printf("True Sobel_x output: \n\r");
-    // Print the elements of the sobel_x array
-    for (size_t i = 0; i < image_size; i++) {
-        printf("%d   ", sobel_x[i]);
-        // Add a newline character after each row
-        if ((i + 1) % width == 0) {
-            printf("\n");
-        }
-    }
+    // printf("True Sobel_x output: \n\r");
+    // // Print the elements of the sobel_x array
+    // for (size_t i = 0; i < image_size; i++) {
+    //     printf("%d   ", sobel_x[i]);
+    //     // Add a newline character after each row
+    //     if ((i + 1) % width == 0) {
+    //         printf("\n");
+    //     }
+    // }
 
-    printf("\n");
-    printf("True Sobel_y output: \n\r");
-    // Print the elements of the sobel_x array
-    for (size_t i = 0; i < image_size; i++) {
-        printf("%d   ", sobel_y[i]);
-        // Add a newline character after each row
-        if ((i + 1) % width == 0) {
-            printf("\n");
-        }
-    }
-    printf("\n");
+    // printf("\n");
+    // printf("True Sobel_y output: \n\r");
+    // // Print the elements of the sobel_x array
+    // for (size_t i = 0; i < image_size; i++) {
+    //     printf("%d   ", sobel_y[i]);
+    //     // Add a newline character after each row
+    //     if ((i + 1) % width == 0) {
+    //         printf("\n");
+    //     }
+    // }
+    // printf("\n");
 
     times[1] = gettimemono_ns();
     phaseAndMagnitude_ref(sobel_x, sobel_y, width, height, phase, magnitude);

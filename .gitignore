@@ -1,7 +1,8 @@
-/*.pgm
-/people.mp4
-/temp_.txt
+/main/*.pgm
+/main/*.mp4
+/main/temp_.txt
 /canny
 /.canny.c.swp
 /.vscode/*
 /main/canny_original.c
+/main/canny

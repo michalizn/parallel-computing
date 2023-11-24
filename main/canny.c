@@ -49,19 +49,26 @@ cl_context context;
 // Create a command queue and associate it with the device 
 cl_command_queue cmdQueue;
 
-// Create the vector addition kernel
+// Create the kernels
 cl_kernel kernelSobel3x3;
-cl_program programSobel3x3;
-
+cl_kernel kernelPhaseAndMagnitude;
+cl_kernel kernelNonMaxSuppression;
+// cl_kernel kernelEdgeTracing;
+// Create the program
+cl_program program;
+// Create the buffers
 cl_mem bufInputImage;
 cl_mem bufSobel_x;
 cl_mem bufSobel_y;
 cl_mem bufPhase;
 cl_mem bufMagnitude;
-// Create a buffer object that will hold the output data
 cl_mem bufOutputImage;
-
+// Create the events
 cl_event kernelSobel3x3Event;
+cl_event kernelPhaseAndMagnitudeEvent;
+cl_event kernelNonMaxSuppressionEvent;
+// cl_event kernelEdgeTracingEvent;
+
 cl_event bufferWriteInputImageEvent;
 cl_event bufferWriteSobelxEvent;
 cl_event bufferWriteSobelyEvent;
@@ -80,20 +87,6 @@ void chk(cl_int status, const char* cmd) {
    }
 }
 
-int16_t* convert_to_int16(uint8_t* input, size_t size) {
-    uint16_t* output = malloc(size * sizeof(uint16_t));
-    if (output == NULL) {
-        fprintf(stderr, "Memory allocation failed\n");
-        exit(EXIT_FAILURE);
-    }
-
-    for (size_t i = 0; i < size; i++) {
-        output[i] = (int16_t)input[i];
-    }
-
-    return output;
-}
-
 size_t
 idx(size_t x, size_t y, size_t width, size_t height, int xoff, int yoff) {
     size_t resx = x;
@@ -107,7 +100,7 @@ idx(size_t x, size_t y, size_t width, size_t height, int xoff, int yoff) {
 
 void
 sobel3x3(
-    const int16_t *restrict in, size_t width, size_t height,
+    const uint8_t *restrict in, size_t width, size_t height,
     int16_t *restrict output_x, int16_t *restrict output_y) {
     // LOOP 1.1
 #pragma omp parallel for
@@ -362,19 +355,12 @@ edgeTracing(uint8_t *restrict image, size_t width, size_t height) {
 
 void
 cannyEdgeDetection(
-    int16_t *restrict input, size_t width, size_t height,
+    uint8_t *restrict input, size_t width, size_t height,
     uint16_t threshold_lower, uint16_t threshold_upper,
     uint8_t *restrict output, double *restrict runtimes) {
     
+    // Init the image size
     size_t image_size = width * height;
-
-    for (size_t i = 0; i < image_size; i++) {
-        printf("%d   ", input[i]);
-        // Add a newline character after each row
-        if ((i + 1) % width == 0) {
-            printf("\n");
-        }
-    }
 
     // Use this to check the output of each API call
     cl_int status;
@@ -382,9 +368,6 @@ cannyEdgeDetection(
     // Allocate arrays for intermediate results
     int16_t *sobel_x = malloc(image_size * sizeof(int16_t));
     assert(sobel_x);
-
-    int16_t *sukat = malloc(image_size * sizeof(int16_t));
-    assert(sukat);
 
     int16_t *sobel_y = malloc(image_size * sizeof(int16_t));
     assert(sobel_y);
@@ -395,136 +378,268 @@ cannyEdgeDetection(
     uint16_t *magnitude = malloc(image_size * sizeof(uint16_t));
     assert(magnitude);
 
-    uint64_t times[5];
-
+/* Write to the buffers */
     status = clEnqueueWriteBuffer(cmdQueue, bufInputImage, CL_TRUE,
-        0, image_size * sizeof(int16_t), input, 0, NULL, &bufferWriteInputImageEvent);
+        0, image_size * sizeof(uint8_t), input, 0, NULL, &bufferWriteInputImageEvent);
     // If something worng, report error
     if (status != CL_SUCCESS) {
         printf("OpenCL error: %s\n", clErrorString(status));
     }
     chk(status, "clEnqueueWriteBuffer");
 
-    // status = clEnqueueWriteBuffer(cmdQueue, bufSobel_x, CL_TRUE,
-    //     0, image_size * sizeof(int16_t), sobel_x, 0, NULL, &bufferWriteSobelxEvent);
-    // // If something worng, report error
-    // if (status != CL_SUCCESS) {
-    //     printf("OpenCL error: %s\n", clErrorString(status));
-    // }
-    // chk(status, "clEnqueueWriteBuffer");
+    status = clEnqueueWriteBuffer(cmdQueue, bufSobel_x, CL_TRUE,
+        0, image_size * sizeof(int16_t), sobel_x, 0, NULL, &bufferWriteSobelxEvent);
+    // If something worng, report error
+    if (status != CL_SUCCESS) {
+        printf("OpenCL error: %s\n", clErrorString(status));
+    }
+    chk(status, "clEnqueueWriteBuffer");
 
-    // status = clEnqueueWriteBuffer(cmdQueue, bufSobel_y, CL_TRUE,
-    //     0, image_size * sizeof(int16_t), sobel_y, 0, NULL, &bufferWriteSobelyEvent);
-    // // If something worng, report error
-    // if (status != CL_SUCCESS) {
-    //     printf("OpenCL error: %s\n", clErrorString(status));
-    // }
-    // chk(status, "clEnqueueWriteBuffer");
+    status = clEnqueueWriteBuffer(cmdQueue, bufSobel_y, CL_TRUE,
+        0, image_size * sizeof(int16_t), sobel_y, 0, NULL, &bufferWriteSobelyEvent);
+    // If something worng, report error
+    if (status != CL_SUCCESS) {
+        printf("OpenCL error: %s\n", clErrorString(status));
+    }
+    chk(status, "clEnqueueWriteBuffer");
 
-    // status = clEnqueueWriteBuffer(cmdQueue, bufPhase, CL_TRUE,
-    //     0, image_size * sizeof(uint8_t), phase, 0, NULL, &bufferWritePhaseEvent);
-    // // If something worng, report error
-    // if (status != CL_SUCCESS) {
-    //     printf("OpenCL error: %s\n", clErrorString(status));
-    // }
-    // chk(status, "clEnqueueWriteBuffer");
+    status = clEnqueueWriteBuffer(cmdQueue, bufPhase, CL_TRUE,
+        0, image_size * sizeof(uint8_t), phase, 0, NULL, &bufferWritePhaseEvent);
+    // If something worng, report error
+    if (status != CL_SUCCESS) {
+        printf("OpenCL error: %s\n", clErrorString(status));
+    }
+    chk(status, "clEnqueueWriteBuffer");
 
-    // status = clEnqueueWriteBuffer(cmdQueue, bufMagnitude, CL_TRUE,
-    //     0, image_size * sizeof(uint16_t), magnitude, 0, NULL, &bufferWriteMagnitudeEvent);
-    // // If something worng, report error
-    // if (status != CL_SUCCESS) {
-    //     printf("OpenCL error: %s\n", clErrorString(status));
-    // }
-    // chk(status, "clEnqueueWriteBuffer");
+    status = clEnqueueWriteBuffer(cmdQueue, bufMagnitude, CL_TRUE,
+        0, image_size * sizeof(uint16_t), magnitude, 0, NULL, &bufferWriteMagnitudeEvent);
+    // If something worng, report error
+    if (status != CL_SUCCESS) {
+        printf("OpenCL error: %s\n", clErrorString(status));
+    }
+    chk(status, "clEnqueueWriteBuffer");
+/* Read the OpenCL source */
+    const char* programSource = read_source("canny.cl");
+/* Creation of the program */
+    // Create a program with source code
+    program = clCreateProgramWithSource(context, 1, &programSource, NULL, &status);
+    chk(status, "clCreateProgramWithSource");
 
-    // const char* programSource = read_source("canny.cl");
+    // Build (compile) the program for the device
+    status = clBuildProgram(program, numDevices, devices, 
+        NULL, NULL, NULL);
+    size_t log_size;
+    // If something worng, report error
+    if (status != CL_SUCCESS) {
+        printf("OpenCL error: %s\n", clErrorString(status));
+    }
 
-    // // Create a program with source code
-    // programSobel3x3 = clCreateProgramWithSource(context, 1, &programSource, NULL, &status);
-    // chk(status, "clCreateProgramWithSource");
-    
-    // // Build (compile) the program for the device
-    // status = clBuildProgram(programSobel3x3, numDevices, devices, 
-    //     NULL, NULL, NULL);
-    // size_t log_size;
-    // // If something worng, report error
-    // if (status != CL_SUCCESS) {
-    //     printf("OpenCL error: %s\n", clErrorString(status));
-    // }
+    status = clGetProgramBuildInfo(program, devices[0], CL_PROGRAM_BUILD_LOG, 0, NULL, &log_size);
+    // If something worng, report error
+    if (status != CL_SUCCESS) {
+        printf("OpenCL error: %s\n", clErrorString(status));
+    }
 
-    // status = clGetProgramBuildInfo(programSobel3x3, devices[0], CL_PROGRAM_BUILD_LOG, 0, NULL, &log_size);
-    // // If something worng, report error
-    // if (status != CL_SUCCESS) {
-    //     printf("OpenCL error: %s\n", clErrorString(status));
-    // }
+    char *log = (char *) malloc(log_size);
 
-    // char *log = (char *) malloc(log_size);
+    status = clGetProgramBuildInfo(program, devices[0], CL_PROGRAM_BUILD_LOG, log_size, log, NULL);
+    // If something worng, report error
+    if (status != CL_SUCCESS) {
+        printf("OpenCL error: %s\n", clErrorString(status));
+    }
+    printf("%s\n", "Build program log: \n");
+    printf("%s\n", log);
+    chk(status, "clBuildProgram");
+/* Creation of the kernels */
+    kernelSobel3x3 = clCreateKernel(program, "sobel3x3", &status);
+    chk(status, "clCreateKernel");
 
-    // status = clGetProgramBuildInfo(programSobel3x3, devices[0], CL_PROGRAM_BUILD_LOG, log_size, log, NULL);
-    // // If something worng, report error
-    // if (status != CL_SUCCESS) {
-    //     printf("OpenCL error: %s\n", clErrorString(status));
-    // }
-    // printf("%s\n", "Build program log: \n");
-    // printf("%s\n", log);
-    // chk(status, "clBuildProgram");
+    kernelPhaseAndMagnitude = clCreateKernel(program, "phaseAndMagnitude", &status);
+    chk(status, "clCreateKernel");
 
-    // kernelSobel3x3 = clCreateKernel(programSobel3x3, "sobel3x3", &status);
+    kernelNonMaxSuppression = clCreateKernel(program, "nonMaxSuppression", &status);
+    chk(status, "clCreateKernel");
+
+    // kernelEdgeTracing = clCreateKernel(program, "edgeTracing", &status);
     // chk(status, "clCreateKernel");
-
-    // // Associate the input and output buffers with the kernel 
-    // status = clSetKernelArg(kernelSobel3x3, 0, sizeof(cl_mem), &bufInputImage);
+/* Setting the arguments of the kernelSobel3x3 */
+    // Associate the input and output buffers with the kernel 
+    status = clSetKernelArg(kernelSobel3x3, 0, sizeof(cl_mem), &bufInputImage);
+    // If something worng, report error
+    if (status != CL_SUCCESS) {
+        printf("OpenCL error: %s\n", clErrorString(status));
+    }
+    chk(status, "clSetKernelArg");
+    status = clSetKernelArg(kernelSobel3x3, 1, sizeof(cl_mem), &bufSobel_x);
+    // If something worng, report error
+    if (status != CL_SUCCESS) {
+        printf("OpenCL error: %s\n", clErrorString(status));
+    }
+    chk(status, "clSetKernelArg");
+    status = clSetKernelArg(kernelSobel3x3, 2, sizeof(cl_mem), &bufSobel_y);
+    // If something worng, report error
+    if (status != CL_SUCCESS) {
+        printf("OpenCL error: %s\n", clErrorString(status));
+    }
+    chk(status, "clSetKernelArg");
+    status = clSetKernelArg(kernelSobel3x3, 3, sizeof(size_t), &width);
+    // If something worng, report error
+    if (status != CL_SUCCESS) {
+        printf("OpenCL error: %s\n", clErrorString(status));
+    }
+    chk(status, "clSetKernelArg");
+    status = clSetKernelArg(kernelSobel3x3, 4, sizeof(size_t), &height);
+    // If something worng, report error
+    if (status != CL_SUCCESS) {
+        printf("OpenCL error: %s\n", clErrorString(status));
+    }
+    chk(status, "clSetKernelArg");
+/* Setting the arguments of the kernelPhaseAndMagnitude */
+    // Associate the input and output buffers with the kernel 
+    status = clSetKernelArg(kernelPhaseAndMagnitude, 0, sizeof(cl_mem), &bufSobel_x);
+    // If something worng, report error
+    if (status != CL_SUCCESS) {
+        printf("OpenCL error: %s\n", clErrorString(status));
+    }
+    chk(status, "clSetKernelArg");
+    status = clSetKernelArg(kernelPhaseAndMagnitude, 1, sizeof(cl_mem), &bufSobel_y);
+    // If something worng, report error
+    if (status != CL_SUCCESS) {
+        printf("OpenCL error: %s\n", clErrorString(status));
+    }
+    chk(status, "clSetKernelArg");
+    status = clSetKernelArg(kernelPhaseAndMagnitude, 2, sizeof(size_t), &width);
+    // If something worng, report error
+    if (status != CL_SUCCESS) {
+        printf("OpenCL error: %s\n", clErrorString(status));
+    }
+    chk(status, "clSetKernelArg");
+    status = clSetKernelArg(kernelPhaseAndMagnitude, 3, sizeof(size_t), &height);
+    // If something worng, report error
+    if (status != CL_SUCCESS) {
+        printf("OpenCL error: %s\n", clErrorString(status));
+    }
+    chk(status, "clSetKernelArg");
+    status = clSetKernelArg(kernelPhaseAndMagnitude, 4, sizeof(cl_mem), &bufPhase);
+    // If something worng, report error
+    if (status != CL_SUCCESS) {
+        printf("OpenCL error: %s\n", clErrorString(status));
+    }
+    chk(status, "clSetKernelArg");
+    status = clSetKernelArg(kernelPhaseAndMagnitude, 5, sizeof(cl_mem), &bufMagnitude);
+    // If something worng, report error
+    if (status != CL_SUCCESS) {
+        printf("hh OpenCL error: %s\n", clErrorString(status));
+    }
+    chk(status, "clSetKernelArg");
+/* Setting the arguments of the kernelNonMaxSuppression */
+    // Associate the input and output buffers with the kernel 
+    status = clSetKernelArg(kernelNonMaxSuppression, 0, sizeof(cl_mem), &bufMagnitude);
+    // If something worng, report error
+    if (status != CL_SUCCESS) {
+        printf("hh OpenCL error: %s\n", clErrorString(status));
+    }
+    chk(status, "clSetKernelArg");
+    status = clSetKernelArg(kernelNonMaxSuppression, 1, sizeof(cl_mem), &bufPhase);
+    // If something worng, report error
+    if (status != CL_SUCCESS) {
+        printf("OpenCL error: %s\n", clErrorString(status));
+    }
+    chk(status, "clSetKernelArg");
+    status = clSetKernelArg(kernelNonMaxSuppression, 2, sizeof(size_t), &width);
+    // If something worng, report error
+    if (status != CL_SUCCESS) {
+        printf("OpenCL error: %s\n", clErrorString(status));
+    }
+    chk(status, "clSetKernelArg");
+    status = clSetKernelArg(kernelNonMaxSuppression, 3, sizeof(size_t), &height);
+    // If something worng, report error
+    if (status != CL_SUCCESS) {
+        printf("OpenCL error: %s\n", clErrorString(status));
+    }
+    chk(status, "clSetKernelArg");
+    status = clSetKernelArg(kernelNonMaxSuppression, 4, sizeof(int16_t), &threshold_lower);
+    // If something worng, report error
+    if (status != CL_SUCCESS) {
+        printf("OpenCL error: %s\n", clErrorString(status));
+    }
+    chk(status, "clSetKernelArg");
+    status = clSetKernelArg(kernelNonMaxSuppression, 5, sizeof(uint16_t), &threshold_upper);
+    // If something worng, report error
+    if (status != CL_SUCCESS) {
+        printf("OpenCL error: %s\n", clErrorString(status));
+    }
+    chk(status, "clSetKernelArg");
+    status = clSetKernelArg(kernelNonMaxSuppression, 6, sizeof(cl_mem), &bufOutputImage);
+    // If something worng, report error
+    if (status != CL_SUCCESS) {
+        printf("OpenCL error: %s\n", clErrorString(status));
+    }
+    chk(status, "clSetKernelArg");
+/* Setting the arguments of the kernelEdgeTracing*/
+    // status = clSetKernelArg(kernelEdgeTracing, 0, sizeof(cl_mem), &bufOutputImage);
     // // If something worng, report error
     // if (status != CL_SUCCESS) {
     //     printf("OpenCL error: %s\n", clErrorString(status));
     // }
     // chk(status, "clSetKernelArg");
-    // status = clSetKernelArg(kernelSobel3x3, 1, sizeof(cl_mem), &bufSobel_x);
+    // status = clSetKernelArg(kernelEdgeTracing, 1, sizeof(size_t), &width);
     // // If something worng, report error
     // if (status != CL_SUCCESS) {
     //     printf("OpenCL error: %s\n", clErrorString(status));
     // }
     // chk(status, "clSetKernelArg");
-    // status = clSetKernelArg(kernelSobel3x3, 2, sizeof(cl_mem), &bufSobel_y);
+    // status = clSetKernelArg(kernelEdgeTracing, 2, sizeof(size_t), &height);
     // // If something worng, report error
     // if (status != CL_SUCCESS) {
     //     printf("OpenCL error: %s\n", clErrorString(status));
     // }
     // chk(status, "clSetKernelArg");
-    // status = clSetKernelArg(kernelSobel3x3, 3, sizeof(size_t), &width);
-    // // If something worng, report error
-    // if (status != CL_SUCCESS) {
-    //     printf("OpenCL error: %s\n", clErrorString(status));
-    // }
-    // chk(status, "clSetKernelArg");
-    // status = clSetKernelArg(kernelSobel3x3, 4, sizeof(size_t), &height);
-    // // If something worng, report error
-    // if (status != CL_SUCCESS) {
-    //     printf("OpenCL error: %s\n", clErrorString(status));
-    // }
-    // chk(status, "clSetKernelArg");
-    // // Define an index space (global work size) of work 
-    // // items for execution. A workgroup size (local work size) 
-    // // is not required, but can be used.
-    // size_t globalWorkSize[2];   
+/* Global work size */
+    // Define an index space (global work size) of work 
+    // items for execution. A workgroup size (local work size) 
+    // is not required, but can be used.
+    size_t globalWorkSize[2];   
  
-    // globalWorkSize[0] = width;
-    // globalWorkSize[1] = height;
-    // // size_t globalWorkSize[1]; 
-    
-    // // // There are 'elements' work-items 
-    // // globalWorkSize[0] = height * width;
+    globalWorkSize[0] = width;
+    globalWorkSize[1] = height;
 
-    // // Execute the kernel for execution
-    // status = clEnqueueNDRangeKernel(cmdQueue, kernelSobel3x3, 2, NULL, 
-    //     globalWorkSize, NULL, 0, NULL, &kernelSobel3x3Event);
+    size_t localWorkSize[1] = {width * height * sizeof(coord_t)};
+/* Execution of the kernels */
+    // Execute the kernel for execution
+    status = clEnqueueNDRangeKernel(cmdQueue, kernelSobel3x3, 2, NULL, 
+        globalWorkSize, NULL, 0, NULL, &kernelSobel3x3Event);
+    // If something worng, report error
+    if (status != CL_SUCCESS) {
+        printf("OpenCL error: %s\n", clErrorString(status));
+    }
+    chk(status, "clEnqueueNDRange");
+    // Execute the kernel for execution
+    status = clEnqueueNDRangeKernel(cmdQueue, kernelPhaseAndMagnitude, 2, NULL, 
+        globalWorkSize, NULL, 0, NULL, &kernelPhaseAndMagnitudeEvent);
+    // If something worng, report error
+    if (status != CL_SUCCESS) {
+        printf("OpenCL error: %s\n", clErrorString(status));
+    }
+    chk(status, "clEnqueueNDRange");
+    // Execute the kernel for execution
+    status = clEnqueueNDRangeKernel(cmdQueue, kernelNonMaxSuppression, 2, NULL, 
+        globalWorkSize, NULL, 0, NULL, &kernelNonMaxSuppressionEvent);
+    // If something worng, report error
+    if (status != CL_SUCCESS) {
+        printf("OpenCL error: %s\n", clErrorString(status));
+    }
+    chk(status, "clEnqueueNDRange");
+    // Execute the kernel for execution
+    // status = clEnqueueNDRangeKernel(cmdQueue, kernelEdgeTracing, 2, NULL, 
+    //     globalWorkSize, localWorkSize, 0, NULL, &kernelEdgeTracingEvent);
     // // If something worng, report error
     // if (status != CL_SUCCESS) {
     //     printf("OpenCL error: %s\n", clErrorString(status));
     // }
     // chk(status, "clEnqueueNDRange");
-
-    // // Read the device output buffer to the host output array
+/* Read from buffers */
+    // Read the device output buffer to the host output array
     // clEnqueueReadBuffer(cmdQueue, bufSobel_x, CL_TRUE, 0, 
     //     image_size * sizeof(int16_t), sobel_x, 0, NULL, &bufferReadSobelxEvent);
     // chk(status, "clEnqueueReadBuffer");
@@ -533,69 +648,55 @@ cannyEdgeDetection(
     //     image_size * sizeof(int16_t), sobel_y, 0, NULL, &bufferReadSobelyEvent);
     // chk(status, "clEnqueueReadBuffer");
 
-    clEnqueueReadBuffer(cmdQueue, bufInputImage, CL_TRUE, 0, 
-        image_size * sizeof(int16_t), sukat, 0, NULL, NULL);
+    // // Read the device output buffer to the host output array
+    // clEnqueueReadBuffer(cmdQueue, bufMagnitude, CL_TRUE, 0, 
+    //     image_size * sizeof(uint16_t), magnitude, 0, NULL, NULL);
+    // chk(status, "clEnqueueReadBuffer");
+
+    // // Read the device output buffer to the host output array
+    // clEnqueueReadBuffer(cmdQueue, bufPhase, CL_TRUE, 0, 
+    //     image_size * sizeof(uint8_t), phase, 0, NULL, NULL);
+    // chk(status, "clEnqueueReadBuffer");
+
+    // Read the device output buffer to the host output array
+    clEnqueueReadBuffer(cmdQueue, bufOutputImage, CL_TRUE, 0, 
+        image_size * sizeof(uint8_t), output, 0, NULL, NULL);
     chk(status, "clEnqueueReadBuffer");
 
-    printf("Buffer input image: \n\r");
-    // Print the elements of the sobel_x array
-    for (size_t i = 0; i < image_size; i++) {
-        printf("%d   ", sukat[i]);
-        // Add a newline character after each row
-        if ((i + 1) % width == 0) {
-            printf("\n");
-        }
-    }
+    cl_double time_sobel3x3 = (cl_double)getStartEndTime(kernelSobel3x3Event)*(cl_double)(1e-06);
+    cl_double time_phaseAndMagnitude = (cl_double)getStartEndTime(kernelPhaseAndMagnitudeEvent)*(cl_double)(1e-06);
+    cl_double time_NonMaxSuppression = (cl_double)getStartEndTime(kernelNonMaxSuppressionEvent)*(cl_double)(1e-06);
+    //cl_double time_EdgeTracingEvent = (cl_double)getStartEndTime(kernelEdgeTracingEvent)*(cl_double)(1e-06);
 
-    // printf("Buffer Sobel_x output: \n\r");
-    // // Print the elements of the sobel_x array
-    // for (size_t i = 0; i < image_size; i++) {
-    //     printf("%d   ", sobel_x[i]);
-    //     // Add a newline character after each row
-    //     if ((i + 1) % width == 0) {
-    //         printf("\n");
-    //     }
-    // }
-
-    // printf("\n");
-    // printf("Buffer Sobel_y output: \n\r");
-    // // Print the elements of the sobel_x array
-    // for (size_t i = 0; i < image_size; i++) {
-    //     printf("%d   ", sobel_y[i]);
-    //     // Add a newline character after each row
-    //     if ((i + 1) % width == 0) {
-    //         printf("\n");
-    //     }
-    // }
-    // printf("\n");
-    
-
+    printf("Kernel execution time of sobel3x3: %f ms\n\r", time_sobel3x3);
+    printf("Kernel execution time of phaseAndMagnitude: %f ms\n\r", time_phaseAndMagnitude);
+    printf("Kernel execution time of NonMaxSuppression: %f ms\n\r", time_NonMaxSuppression);
+    //printf("Kernel execution time of NonMaxSuppression: %f ms\n\r", time_EdgeTracingEvent);
     // Canny edge detection algorithm consists of the following functions:
-    times[0] = gettimemono_ns();
-    sobel3x3(input, width, height, sobel_x, sobel_y);
+    // times[0] = gettimemono_ns();
+    //sobel3x3(input, width, height, sobel_x, sobel_y);
 
-    times[1] = gettimemono_ns();
-    phaseAndMagnitude(sobel_x, sobel_y, width, height, phase, magnitude);
+    // times[1] = gettimemono_ns();
+    // phaseAndMagnitude(sobel_x, sobel_y, width, height, phase, magnitude);
 
-    times[2] = gettimemono_ns();
-    nonMaxSuppression(
-        magnitude, phase, width, height, threshold_lower, threshold_upper,
-        output);
+    // times[2] = gettimemono_ns();
+    //nonMaxSuppression(magnitude, phase, width, height, threshold_lower, threshold_upper, output);
 
-    times[3] = gettimemono_ns();
+    // times[3] = gettimemono_ns();
     edgeTracing(output, width, height);  // modifies output in-place
 
-    times[4] = gettimemono_ns();
+    // times[4] = gettimemono_ns();
     // Release intermediate arrays
+
     free(sobel_x);
     free(sobel_y);
     free(phase);
     free(magnitude);
 
-    for (int i = 0; i < 4; i++) {
-        runtimes[i] = times[i + 1] - times[i];
-        runtimes[i] /= 1000000.0;  // Convert ns to ms
-    }
+    // for (int i = 0; i < 4; i++) {
+    //     runtimes[i] = times[i + 1] - times[i];
+    //     runtimes[i] /= 1000000.0;  // Convert ns to ms
+    // }
 }
 
 // Needed only in Part 2 for OpenCL initialization
@@ -643,7 +744,7 @@ init(
 
     cmdQueue = clCreateCommandQueue(context, devices[0], CL_QUEUE_PROFILING_ENABLE, &status);
 
-    bufInputImage = clCreateBuffer(context, CL_MEM_READ_ONLY, sizeof(int16_t)*image_size,                       
+    bufInputImage = clCreateBuffer(context, CL_MEM_READ_WRITE, sizeof(uint8_t)*image_size,                       
        NULL, &status);
 
     bufSobel_x = clCreateBuffer(context, CL_MEM_READ_WRITE, sizeof(int16_t)*image_size,                        
@@ -658,7 +759,7 @@ init(
     bufMagnitude = clCreateBuffer(context, CL_MEM_READ_WRITE, sizeof(int16_t)*image_size,                        
         NULL, &status);
 
-    bufOutputImage = clCreateBuffer(context, CL_MEM_WRITE_ONLY, sizeof(uint8_t)*image_size,
+    bufOutputImage = clCreateBuffer(context, CL_MEM_READ_WRITE, sizeof(uint8_t)*image_size,
         NULL, &status);
 }
 
@@ -666,7 +767,7 @@ void
 destroy() {
     // Free OpenCL resources
     clReleaseKernel(kernelSobel3x3);
-    clReleaseProgram(programSobel3x3);
+    clReleaseProgram(program);
     clReleaseCommandQueue(cmdQueue);
     clReleaseMemObject(bufInputImage);
     clReleaseMemObject(bufSobel_x);
@@ -831,9 +932,7 @@ main(int argc, char **argv) {
         for (int iter = 0; iter < benchmarking_iterations; iter++) {
             double iter_runtimes[4];
             // Convert to uint16_t
-            int16_t* int16_image = convert_to_int16(input_image, width * height);
-            cannyEdgeDetection(
-                int16_image, width, height, threshold_lower, threshold_upper,
+                cannyEdgeDetection(input_image, width, height, threshold_lower, threshold_upper,
                 output_image, iter_runtimes);
 
             for (int n = 0; n < 4; n++) {
