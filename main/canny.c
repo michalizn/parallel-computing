@@ -1,10 +1,3 @@
-/* COMP.CE.350 Parallelization Excercise 2023
-   Copyright (c) 2023 Topi Leppanen topi.leppanen@tuni.fi
-                      Jan Solanti
-
-VERSION 23.0 - Created
-*/
-
 #include <assert.h>
 #include <math.h>
 #include <stdint.h>
