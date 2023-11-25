@@ -1,7 +1,3 @@
-/* COMP.CE.350 Parallelization Exercise util functions
-   Copyright (c) 2023 Topi Leppanen topi.leppanen@tuni.fi
-*/
-
 #ifndef OPENCL_UTIL_H
 #define OPENCL_UTIL_H
 
