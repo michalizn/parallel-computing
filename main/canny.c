@@ -77,6 +77,9 @@ cl_event bufferWriteMagnitudeEvent;
 cl_event bufferWriteBEvent;
 cl_event bufferReadSobelxEvent;
 cl_event bufferReadSobelyEvent;
+
+// Global constant for program source
+const char* programSource;
 // Utility function to convert 2d index with offset to linear index
 // Uses clamp-to-edge out-of-bounds handling
 void chk(cl_int status, const char* cmd) {
@@ -418,8 +421,6 @@ cannyEdgeDetection(
         printf("OpenCL error: %s\n", clErrorString(status));
     }
     chk(status, "clEnqueueWriteBuffer");
-/* Read the OpenCL source */
-    const char* programSource = read_source("canny.cl");
 /* Creation of the program */
     // Create a program with source code
     program = clCreateProgramWithSource(context, 1, &programSource, NULL, &status);
@@ -482,13 +483,13 @@ cannyEdgeDetection(
         printf("OpenCL error: %s\n", clErrorString(status));
     }
     chk(status, "clSetKernelArg");
-    status = clSetKernelArg(kernelSobel3x3, 3, sizeof(size_t), &width);
+    status = clSetKernelArg(kernelSobel3x3, 3, sizeof(cl_uint), &width);
     // If something worng, report error
     if (status != CL_SUCCESS) {
         printf("OpenCL error: %s\n", clErrorString(status));
     }
     chk(status, "clSetKernelArg");
-    status = clSetKernelArg(kernelSobel3x3, 4, sizeof(size_t), &height);
+    status = clSetKernelArg(kernelSobel3x3, 4, sizeof(cl_uint), &height);
     // If something worng, report error
     if (status != CL_SUCCESS) {
         printf("OpenCL error: %s\n", clErrorString(status));
@@ -508,13 +509,13 @@ cannyEdgeDetection(
         printf("OpenCL error: %s\n", clErrorString(status));
     }
     chk(status, "clSetKernelArg");
-    status = clSetKernelArg(kernelPhaseAndMagnitude, 2, sizeof(size_t), &width);
+    status = clSetKernelArg(kernelPhaseAndMagnitude, 2, sizeof(cl_uint), &width);
     // If something worng, report error
     if (status != CL_SUCCESS) {
         printf("OpenCL error: %s\n", clErrorString(status));
     }
     chk(status, "clSetKernelArg");
-    status = clSetKernelArg(kernelPhaseAndMagnitude, 3, sizeof(size_t), &height);
+    status = clSetKernelArg(kernelPhaseAndMagnitude, 3, sizeof(cl_uint), &height);
     // If something worng, report error
     if (status != CL_SUCCESS) {
         printf("OpenCL error: %s\n", clErrorString(status));
@@ -546,13 +547,13 @@ cannyEdgeDetection(
         printf("OpenCL error: %s\n", clErrorString(status));
     }
     chk(status, "clSetKernelArg");
-    status = clSetKernelArg(kernelNonMaxSuppression, 2, sizeof(size_t), &width);
+    status = clSetKernelArg(kernelNonMaxSuppression, 2, sizeof(cl_uint), &width);
     // If something worng, report error
     if (status != CL_SUCCESS) {
         printf("OpenCL error: %s\n", clErrorString(status));
     }
     chk(status, "clSetKernelArg");
-    status = clSetKernelArg(kernelNonMaxSuppression, 3, sizeof(size_t), &height);
+    status = clSetKernelArg(kernelNonMaxSuppression, 3, sizeof(cl_uint), &height);
     // If something worng, report error
     if (status != CL_SUCCESS) {
         printf("OpenCL error: %s\n", clErrorString(status));
@@ -738,6 +739,9 @@ init(
     if (status != CL_SUCCESS) {
         printf("OpenCL error: %s\n", clErrorString(status));
     }
+
+    /* Read the OpenCL source */
+    programSource = read_source("canny.cl");
 
     context = clCreateContext(NULL, numDevices, devices, NULL, 
         NULL, &status);
