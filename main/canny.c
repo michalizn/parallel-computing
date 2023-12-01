@@ -68,10 +68,10 @@ cl_event bufferWriteSobelyEvent;
 cl_event bufferWritePhaseEvent;
 cl_event bufferWriteMagnitudeEvent;
 cl_event bufferReadOutputImageEvent;
-cl_event bufferReadSobelxEvent;
-cl_event bufferReadSobelyEvent;
-cl_event bufferReadPhaseEvent;
-cl_event bufferReadMagnitudeEvent;
+//cl_event bufferReadSobelxEvent;
+//cl_event bufferReadSobelyEvent;
+//cl_event bufferReadPhaseEvent;
+//cl_event bufferReadMagnitudeEvent;
 
 // Global constant for program source
 const char* programSource;
@@ -354,38 +354,38 @@ cannyEdgeDetection(
         printf("OpenCL error: %s\n", clErrorString(status));
     }
     chk(status, "clEnqueueWriteBuffer");
-
-    status = clEnqueueWriteBuffer(cmdQueue, bufSobel_x, CL_TRUE,
-        0, image_size * sizeof(int16_t), sobel_x, 0, NULL, &bufferWriteSobelxEvent);
-    // If something worng, report error
-    if (status != CL_SUCCESS) {
-        printf("OpenCL error: %s\n", clErrorString(status));
-    }
-    chk(status, "clEnqueueWriteBuffer");
-
-    status = clEnqueueWriteBuffer(cmdQueue, bufSobel_y, CL_TRUE,
-        0, image_size * sizeof(int16_t), sobel_y, 0, NULL, &bufferWriteSobelyEvent);
-    // If something worng, report error
-    if (status != CL_SUCCESS) {
-        printf("OpenCL error: %s\n", clErrorString(status));
-    }
-    chk(status, "clEnqueueWriteBuffer");
-
-    status = clEnqueueWriteBuffer(cmdQueue, bufPhase, CL_TRUE,
-        0, image_size * sizeof(uint8_t), phase, 0, NULL, &bufferWritePhaseEvent);
-    // If something worng, report error
-    if (status != CL_SUCCESS) {
-        printf("OpenCL error: %s\n", clErrorString(status));
-    }
-    chk(status, "clEnqueueWriteBuffer");
-
-    status = clEnqueueWriteBuffer(cmdQueue, bufMagnitude, CL_TRUE,
-        0, image_size * sizeof(uint16_t), magnitude, 0, NULL, &bufferWriteMagnitudeEvent);
-    // If something worng, report error
-    if (status != CL_SUCCESS) {
-        printf("OpenCL error: %s\n", clErrorString(status));
-    }
-    chk(status, "clEnqueueWriteBuffer");
+//
+//    status = clEnqueueWriteBuffer(cmdQueue, bufSobel_x, CL_TRUE,
+//        0, image_size * sizeof(int16_t), sobel_x, 0, NULL, &bufferWriteSobelxEvent);
+//    // If something worng, report error
+//    if (status != CL_SUCCESS) {
+//        printf("OpenCL error: %s\n", clErrorString(status));
+//    }
+//    chk(status, "clEnqueueWriteBuffer");
+//
+//    status = clEnqueueWriteBuffer(cmdQueue, bufSobel_y, CL_TRUE,
+//        0, image_size * sizeof(int16_t), sobel_y, 0, NULL, &bufferWriteSobelyEvent);
+//    // If something worng, report error
+//    if (status != CL_SUCCESS) {
+//        printf("OpenCL error: %s\n", clErrorString(status));
+//    }
+//    chk(status, "clEnqueueWriteBuffer");
+//
+//    status = clEnqueueWriteBuffer(cmdQueue, bufPhase, CL_TRUE,
+//        0, image_size * sizeof(uint8_t), phase, 0, NULL, &bufferWritePhaseEvent);
+//    // If something worng, report error
+//    if (status != CL_SUCCESS) {
+//        printf("OpenCL error: %s\n", clErrorString(status));
+//    }
+//    chk(status, "clEnqueueWriteBuffer");
+//
+//    status = clEnqueueWriteBuffer(cmdQueue, bufMagnitude, CL_TRUE,
+//        0, image_size * sizeof(uint16_t), magnitude, 0, NULL, &bufferWriteMagnitudeEvent);
+//    // If something worng, report error
+//    if (status != CL_SUCCESS) {
+//        printf("OpenCL error: %s\n", clErrorString(status));
+//    }
+//    chk(status, "clEnqueueWriteBuffer");
 // /* Creation of the program */
 //     // Create a program with source code
 //     program = clCreateProgramWithSource(context, 1, &programSource, NULL, &status);
@@ -606,23 +606,23 @@ cannyEdgeDetection(
     // chk(status, "clEnqueueNDRange");
 /* Read from buffers */
     // Read the device output buffer to the host output array
-    clEnqueueReadBuffer(cmdQueue, bufSobel_x, CL_TRUE, 0, 
-        image_size * sizeof(int16_t), sobel_x, 0, NULL, &bufferReadSobelxEvent);
-    chk(status, "clEnqueueReadBuffer");
-
-    clEnqueueReadBuffer(cmdQueue, bufSobel_y, CL_TRUE, 0, 
-        image_size * sizeof(int16_t), sobel_y, 0, NULL, &bufferReadSobelyEvent);
-    chk(status, "clEnqueueReadBuffer");
-
-    // Read the device output buffer to the host output array
-    clEnqueueReadBuffer(cmdQueue, bufMagnitude, CL_TRUE, 0, 
-        image_size * sizeof(uint16_t), magnitude, 0, NULL, &bufferReadMagnitudeEvent);
-    chk(status, "clEnqueueReadBuffer");
-
-    // Read the device output buffer to the host output array
-    clEnqueueReadBuffer(cmdQueue, bufPhase, CL_TRUE, 0, 
-        image_size * sizeof(uint8_t), phase, 0, NULL, &bufferReadPhaseEvent);
-    chk(status, "clEnqueueReadBuffer");
+//    clEnqueueReadBuffer(cmdQueue, bufSobel_x, CL_TRUE, 0,
+//        image_size * sizeof(int16_t), sobel_x, 0, NULL, &bufferReadSobelxEvent);
+//    chk(status, "clEnqueueReadBuffer");
+//
+//    clEnqueueReadBuffer(cmdQueue, bufSobel_y, CL_TRUE, 0,
+//        image_size * sizeof(int16_t), sobel_y, 0, NULL, &bufferReadSobelyEvent);
+//    chk(status, "clEnqueueReadBuffer");
+//
+//    // Read the device output buffer to the host output array
+//    clEnqueueReadBuffer(cmdQueue, bufMagnitude, CL_TRUE, 0,
+//        image_size * sizeof(uint16_t), magnitude, 0, NULL, &bufferReadMagnitudeEvent);
+//    chk(status, "clEnqueueReadBuffer");
+//
+//    // Read the device output buffer to the host output array
+//    clEnqueueReadBuffer(cmdQueue, bufPhase, CL_TRUE, 0,
+//        image_size * sizeof(uint8_t), phase, 0, NULL, &bufferReadPhaseEvent);
+//    chk(status, "clEnqueueReadBuffer");
 
     // Read the device output buffer to the host output array
     clEnqueueReadBuffer(cmdQueue, bufOutputImage, CL_TRUE, 0, 
@@ -635,20 +635,20 @@ cannyEdgeDetection(
 
     // Get the execution times of buffer Write action 
     times[0] = (cl_double)getStartEndTime(bufferWriteInputImageEvent)*(cl_double)(1e-06);
-    times[1] = (cl_double)getStartEndTime(bufferWriteSobelxEvent)*(cl_double)(1e-06);
-    times[2] = (cl_double)getStartEndTime(bufferWriteSobelyEvent)*(cl_double)(1e-06);
-    times[3] = (cl_double)getStartEndTime(bufferWritePhaseEvent)*(cl_double)(1e-06);
-    times[4] = (cl_double)getStartEndTime(bufferWriteMagnitudeEvent)*(cl_double)(1e-06);
-    times[5] = (cl_double)getStartEndTime(bufferReadOutputImageEvent)*(cl_double)(1e-06);
-    times[6] = (cl_double)getStartEndTime(bufferReadSobelxEvent)*(cl_double)(1e-06);
-    times[7] = (cl_double)getStartEndTime(bufferReadSobelyEvent)*(cl_double)(1e-06);
-    times[8] = (cl_double)getStartEndTime(bufferReadPhaseEvent)*(cl_double)(1e-06);
-    times[9] = (cl_double)getStartEndTime(bufferReadMagnitudeEvent)*(cl_double)(1e-06);
+//    times[1] = (cl_double)getStartEndTime(bufferWriteSobelxEvent)*(cl_double)(1e-06);
+//    times[2] = (cl_double)getStartEndTime(bufferWriteSobelyEvent)*(cl_double)(1e-06);
+//    times[3] = (cl_double)getStartEndTime(bufferWritePhaseEvent)*(cl_double)(1e-06);
+//    times[4] = (cl_double)getStartEndTime(bufferWriteMagnitudeEvent)*(cl_double)(1e-06);
+    times[1] = (cl_double)getStartEndTime(bufferReadOutputImageEvent)*(cl_double)(1e-06);
+//    times[6] = (cl_double)getStartEndTime(bufferReadSobelxEvent)*(cl_double)(1e-06);
+//    times[7] = (cl_double)getStartEndTime(bufferReadSobelyEvent)*(cl_double)(1e-06);
+//    times[8] = (cl_double)getStartEndTime(bufferReadPhaseEvent)*(cl_double)(1e-06);
+//    times[9] = (cl_double)getStartEndTime(bufferReadMagnitudeEvent)*(cl_double)(1e-06);
     // Get the execution times of kernels
-    times[10] = (cl_double)getStartEndTime(kernelSobel3x3Event)*(cl_double)(1e-06);
-    times[11] = (cl_double)getStartEndTime(kernelPhaseAndMagnitudeEvent)*(cl_double)(1e-06);
-    times[12] = (cl_double)getStartEndTime(kernelNonMaxSuppressionEvent)*(cl_double)(1e-06);
-    times[13] = (end_edgeTracing - end_edgeTracing)*(cl_double)(1e-06);
+    times[2] = (cl_double)getStartEndTime(kernelSobel3x3Event)*(cl_double)(1e-06);
+    times[3] = (cl_double)getStartEndTime(kernelPhaseAndMagnitudeEvent)*(cl_double)(1e-06);
+    times[4] = (cl_double)getStartEndTime(kernelNonMaxSuppressionEvent)*(cl_double)(1e-06);
+    times[5] = (end_edgeTracing - start_edgeTracing)*(cl_double)(1e-06);
     //cl_double time_EdgeTracingEvent = (cl_double)getStartEndTime(kernelEdgeTracingEvent)*(cl_double)(1e-06);
 
     // Canny edge detection algorithm consists of the following functions:
@@ -784,15 +784,15 @@ destroy() {
     clReleaseEvent(kernelPhaseAndMagnitudeEvent);
     clReleaseEvent(kernelNonMaxSuppressionEvent);
     clReleaseEvent(bufferWriteInputImageEvent);
-    clReleaseEvent(bufferWriteSobelxEvent);
-    clReleaseEvent(bufferWriteSobelyEvent);
-    clReleaseEvent(bufferWritePhaseEvent);
-    clReleaseEvent(bufferWriteMagnitudeEvent);
+//    clReleaseEvent(bufferWriteSobelxEvent);
+//    clReleaseEvent(bufferWriteSobelyEvent);
+//    clReleaseEvent(bufferWritePhaseEvent);
+//    clReleaseEvent(bufferWriteMagnitudeEvent);
     clReleaseEvent(bufferReadOutputImageEvent);
-    clReleaseEvent(bufferReadSobelxEvent);
-    clReleaseEvent(bufferReadSobelyEvent);
-    clReleaseEvent(bufferReadPhaseEvent);
-    clReleaseEvent(bufferReadMagnitudeEvent);
+//    clReleaseEvent(bufferReadSobelxEvent);
+//    clReleaseEvent(bufferReadSobelyEvent);
+//    clReleaseEvent(bufferReadPhaseEvent);
+//    clReleaseEvent(bufferReadMagnitudeEvent);
     // Release context, program and cmdQueue
     clReleaseContext(context);
     clReleaseProgram(program);
@@ -955,17 +955,16 @@ main(int argc, char **argv) {
         assert(output_image);
 
         int all_the_runs_were_succesful = 1;
-        cl_double avg_runtimes[14] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-                                   0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+        cl_double avg_runtimes[6] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
         double avg_total = 0.0;
 
         for (int iter = 0; iter < benchmarking_iterations; iter++) {
-            double iter_runtimes[14];
+            double iter_runtimes[6];
 
             cannyEdgeDetection(input_image, width, height, threshold_lower, threshold_upper,
             output_image, iter_runtimes);
 
-            for (int n = 0; n < 14; n++) {
+            for (int n = 0; n < 6; n++) {
                 avg_runtimes[n] += iter_runtimes[n] / benchmarking_iterations;
                 avg_total += iter_runtimes[n] / benchmarking_iterations;
             }
@@ -999,22 +998,22 @@ main(int argc, char **argv) {
         }
 
         printf("Execution time of buffer Write of InputImage        : %0.6f ms\n\r", avg_runtimes[0]);
-        printf("Execution time of buffer Write of Sobelx            : %0.6f ms\n\r", avg_runtimes[1]);
-        printf("Execution time of buffer Write of Sobely            : %0.6f ms\n\r", avg_runtimes[2]);
-        printf("Execution time of buffer Write of Phase             : %0.6f ms\n\r", avg_runtimes[3]);
-        printf("Execution time of buffer Write of Magnitude         : %0.6f ms\n\r", avg_runtimes[4]);
+//        printf("Execution time of buffer Write of Sobelx            : %0.6f ms\n\r", avg_runtimes[1]);
+//        printf("Execution time of buffer Write of Sobely            : %0.6f ms\n\r", avg_runtimes[2]);
+//        printf("Execution time of buffer Write of Phase             : %0.6f ms\n\r", avg_runtimes[3]);
+//        printf("Execution time of buffer Write of Magnitude         : %0.6f ms\n\r", avg_runtimes[4]);
 
-        printf("Execution time of buffer Read of OutputImageEvent   : %0.6f ms\n\r", avg_runtimes[5]);
-        printf("Execution time of buffer Read of SobelxEvent        : %0.6f ms\n\r", avg_runtimes[6]);
-        printf("Execution time of buffer Read of SobelyEvent        : %0.6f ms\n\r", avg_runtimes[7]);
-        printf("Execution time of buffer Read of PhaseEvent         : %0.6f ms\n\r", avg_runtimes[8]);
-        printf("Execution time of buffer Read of MagnitudeEvent     : %0.6f ms\n\r", avg_runtimes[9]);
+        printf("Execution time of buffer Read of OutputImageEvent   : %0.6f ms\n\r", avg_runtimes[1]);
+//        printf("Execution time of buffer Read of SobelxEvent        : %0.6f ms\n\r", avg_runtimes[6]);
+//        printf("Execution time of buffer Read of SobelyEvent        : %0.6f ms\n\r", avg_runtimes[7]);
+//        printf("Execution time of buffer Read of PhaseEvent         : %0.6f ms\n\r", avg_runtimes[8]);
+//        printf("Execution time of buffer Read of MagnitudeEvent     : %0.6f ms\n\r", avg_runtimes[9]);
 
-        printf("Execution time of Sobel3x3 kernel                   : %0.6f ms\n\r", avg_runtimes[10]);
-        printf("Execution time of PhaseAndMagnitude kernel          : %0.6f ms\n\r", avg_runtimes[11]);
-        printf("Execution time of NonMaxSuppression kernel          : %0.6f ms\n\r", avg_runtimes[12]);
+        printf("Execution time of Sobel3x3 kernel                   : %0.6f ms\n\r", avg_runtimes[2]);
+        printf("Execution time of PhaseAndMagnitude kernel          : %0.6f ms\n\r", avg_runtimes[3]);
+        printf("Execution time of NonMaxSuppression kernel          : %0.6f ms\n\r", avg_runtimes[4]);
         // printf("Execution time of edgeTracing kernel                : %0.6f ms\n\r", avg_runtimes[14]);
-        // printf("Execution time of edgeTracing function              : %0.16f ms\n\r", avg_runtimes[13]);
+        printf("Execution time of edgeTracing function              : %0.6f ms\n\r", avg_runtimes[5]);
         printf("Total time                                          : %0.3f ms\n", avg_total);
 
         // printf("Execution time of NonMaxSuppression: %f ms\n\r", time_EdgeTracingEvent);
